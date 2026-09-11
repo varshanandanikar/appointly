@@ -163,7 +163,7 @@
           <div class="apt-grid-2">
             <div class="apt-field">
               <label for="apt-phone">Phone</label>
-              <input type="text" id="apt-phone" placeholder="10-digit number">
+              <input type="tel" id="apt-phone" placeholder="10-digit number" inputmode="numeric" maxlength="10">
             </div>
             <div class="apt-field">
               <label for="apt-email">Email (optional)</label>
@@ -227,6 +227,9 @@
     var h12 = h % 12 || 12;
     return h12 + ":" + m + " " + ampm;
   }
+
+  var PHONE_RE = /^[6-9]\d{9}$/;
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   function formatDateLong(iso) {
     var d = new Date(iso + "T00:00:00");
@@ -308,6 +311,8 @@
 
     if (!selectedSlot) { showMsg("Pick a time slot first."); return; }
     if (!name || !phone) { showMsg("Name and phone are required."); return; }
+    if (!PHONE_RE.test(phone)) { showMsg("Enter a valid 10-digit phone number."); return; }
+    if (email && !EMAIL_RE.test(email)) { showMsg("Enter a valid email address."); return; }
 
     var btn = document.getElementById("apt-book-btn");
     var btnText = document.getElementById("apt-book-btn-text");

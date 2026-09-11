@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "field:provider_name",
+ "creation": "2026-09-11 17:31:00.613569",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "provider_name",
+  "specialization",
+  "column_break_1",
+  "working_hours_start",
+  "working_hours_end",
+  "slot_duration_mins",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "provider_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Provider Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "specialization",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Specialization"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "09:00:00",
+   "fieldname": "working_hours_start",
+   "fieldtype": "Time",
+   "label": "Working Hours Start",
+   "reqd": 1
+  },
+  {
+   "default": "18:00:00",
+   "fieldname": "working_hours_end",
+   "fieldtype": "Time",
+   "label": "Working Hours End",
+   "reqd": 1
+  },
+  {
+   "default": "30",
+   "fieldname": "slot_duration_mins",
+   "fieldtype": "Int",
+   "label": "Slot Duration (mins)",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-11 17:31:00.613569",
+ "modified_by": "Administrator",
+ "module": "Appointly",
+ "name": "Provider",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "provider_name"
+}

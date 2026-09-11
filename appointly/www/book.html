@@ -1,0 +1,203 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Book an Appointment{% endblock %}
+
+{% block page_content %}
+<style>
+  .apt-wrap{ max-width:520px; margin:0 auto; padding:24px 4px 60px; }
+  .apt-wrap h1{ font-size:1.5rem; margin-bottom:4px; }
+  .apt-wrap .sub{ color:#6b7280; margin-bottom:24px; }
+  .apt-field{ margin-bottom:16px; }
+  .apt-field label{ display:block; font-weight:600; margin-bottom:6px; font-size:.9rem; }
+  .apt-field input, .apt-field select, .apt-field textarea{
+    width:100%; padding:9px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:.95rem;
+  }
+  .slots{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .slot-btn{
+    padding:7px 12px; border:1px solid #1B4F91; border-radius:6px; background:#fff;
+    color:#1B4F91; cursor:pointer; font-size:.85rem;
+  }
+  .slot-btn.selected{ background:#1B4F91; color:#fff; }
+  .apt-actions{ margin-top:20px; }
+  .apt-actions button{
+    background:#1B4F91; color:#fff; border:none; padding:10px 20px; border-radius:6px;
+    font-size:.95rem; cursor:pointer;
+  }
+  .apt-actions button:disabled{ opacity:.5; cursor:not-allowed; }
+  .apt-msg{ margin-top:16px; padding:12px 14px; border-radius:6px; font-size:.9rem; }
+  .apt-msg.ok{ background:#e9f7ef; color:#1e7e34; }
+  .apt-msg.err{ background:#fdecea; color:#b3261e; }
+  .hidden{ display:none; }
+</style>
+
+<div class="apt-wrap">
+  <h1>Book an Appointment</h1>
+  <p class="sub">Pick a provider, choose a free slot, and confirm your details.</p>
+
+  <div class="apt-field">
+    <label for="apt-provider">Provider</label>
+    <select id="apt-provider"></select>
+  </div>
+
+  <div class="apt-field">
+    <label for="apt-date">Date</label>
+    <input type="date" id="apt-date">
+  </div>
+
+  <div class="apt-field">
+    <button type="button" id="apt-check-btn" onclick="checkSlots()">Check Availability</button>
+  </div>
+
+  <div class="apt-field">
+    <label>Available Slots</label>
+    <div class="slots" id="apt-slots"><span style="color:#9ca3af;font-size:.85rem;">Choose a provider and date, then check availability.</span></div>
+  </div>
+
+  <div id="apt-form" class="hidden">
+    <div class="apt-field">
+      <label for="apt-name">Your Name</label>
+      <input type="text" id="apt-name">
+    </div>
+    <div class="apt-field">
+      <label for="apt-phone">Phone</label>
+      <input type="text" id="apt-phone">
+    </div>
+    <div class="apt-field">
+      <label for="apt-email">Email (optional)</label>
+      <input type="email" id="apt-email">
+    </div>
+    <div class="apt-field">
+      <label for="apt-notes">Notes (optional)</label>
+      <textarea id="apt-notes" rows="3"></textarea>
+    </div>
+    <div class="apt-actions">
+      <button type="button" id="apt-book-btn" onclick="bookAppointment()">Confirm Booking</button>
+    </div>
+  </div>
+
+  <div id="apt-msg" class="apt-msg hidden"></div>
+</div>
+
+<script>
+  var selectedSlot = null;
+
+  async function callMethod(method, params, isPost) {
+    var url = "/api/method/appointly.api." + method;
+    var opts = { headers: { "Content-Type": "application/json" } };
+    if (isPost) {
+      opts.method = "POST";
+      opts.body = JSON.stringify(params || {});
+    } else {
+      opts.method = "GET";
+      var qs = new URLSearchParams(params || {}).toString();
+      if (qs) url += "?" + qs;
+    }
+    var res = await fetch(url, opts);
+    var data = await res.json();
+    if (!res.ok) {
+      var msg = (data && (data.message || (data.exc_type ? data.exc_type + ": " + data._server_messages : null))) || "Something went wrong.";
+      throw new Error(msg);
+    }
+    return data.message;
+  }
+
+  async function loadProviders() {
+    var providers = await callMethod("get_providers", {}, false);
+    var sel = document.getElementById("apt-provider");
+    sel.innerHTML = "";
+    if (!providers.length) {
+      sel.innerHTML = "<option>No providers available</option>";
+      return;
+    }
+    providers.forEach(function (p) {
+      var opt = document.createElement("option");
+      opt.value = p.name;
+      opt.textContent = p.provider_name + (p.specialization ? " — " + p.specialization : "");
+      sel.appendChild(opt);
+    });
+  }
+
+  async function checkSlots() {
+    var provider = document.getElementById("apt-provider").value;
+    var date = document.getElementById("apt-date").value;
+    var slotsEl = document.getElementById("apt-slots");
+    var msgEl = document.getElementById("apt-msg");
+    msgEl.className = "apt-msg hidden";
+    document.getElementById("apt-form").classList.add("hidden");
+    selectedSlot = null;
+
+    if (!provider || !date) {
+      slotsEl.innerHTML = '<span style="color:#b3261e;font-size:.85rem;">Choose a provider and date first.</span>';
+      return;
+    }
+
+    slotsEl.innerHTML = '<span style="color:#9ca3af;font-size:.85rem;">Loading...</span>';
+    try {
+      var slots = await callMethod("get_available_slots", { provider: provider, appointment_date: date }, false);
+      if (!slots.length) {
+        slotsEl.innerHTML = '<span style="color:#b3261e;font-size:.85rem;">No free slots on this date.</span>';
+        return;
+      }
+      slotsEl.innerHTML = "";
+      slots.forEach(function (s) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slot-btn";
+        btn.textContent = s;
+        btn.onclick = function () {
+          document.querySelectorAll(".slot-btn").forEach(function (b) { b.classList.remove("selected"); });
+          btn.classList.add("selected");
+          selectedSlot = s;
+          document.getElementById("apt-form").classList.remove("hidden");
+        };
+        slotsEl.appendChild(btn);
+      });
+    } catch (e) {
+      slotsEl.innerHTML = '<span style="color:#b3261e;font-size:.85rem;">' + e.message + "</span>";
+    }
+  }
+
+  async function bookAppointment() {
+    var msgEl = document.getElementById("apt-msg");
+    var provider = document.getElementById("apt-provider").value;
+    var date = document.getElementById("apt-date").value;
+    var name = document.getElementById("apt-name").value.trim();
+    var phone = document.getElementById("apt-phone").value.trim();
+    var email = document.getElementById("apt-email").value.trim();
+    var notes = document.getElementById("apt-notes").value.trim();
+
+    if (!selectedSlot) { showMsg("Pick a time slot first.", true); return; }
+    if (!name || !phone) { showMsg("Name and phone are required.", true); return; }
+
+    var btn = document.getElementById("apt-book-btn");
+    btn.disabled = true;
+    try {
+      var result = await callMethod("book_appointment", {
+        customer_name: name,
+        phone: phone,
+        email: email || null,
+        provider: provider,
+        appointment_date: date,
+        start_time: selectedSlot,
+        notes: notes || null,
+      }, true);
+      showMsg("Booked! Confirmation: " + result.name + " with " + result.provider + " on " + result.appointment_date + " at " + result.start_time + ".", false);
+      document.getElementById("apt-form").classList.add("hidden");
+      checkSlots();
+    } catch (e) {
+      showMsg(e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function showMsg(text, isErr) {
+    var msgEl = document.getElementById("apt-msg");
+    msgEl.textContent = text;
+    msgEl.className = "apt-msg " + (isErr ? "err" : "ok");
+  }
+
+  document.getElementById("apt-date").min = new Date().toISOString().slice(0, 10);
+  loadProviders();
+</script>
+{% endblock %}

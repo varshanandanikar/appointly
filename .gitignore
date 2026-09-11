@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.egg-info/
+node_modules/
+.frappe
+.DS_Store
+dist/
+build/
